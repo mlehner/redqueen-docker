@@ -1,12 +1,17 @@
 version: '3'
 services:
+  redqueen-auth-proxy:
+    environment:
+      HTPASSWD_CONTENTS: 'admin:$$apr1$$zzCtwG9/$$EHvacw3BSXrtqK7g3i3J1/'
+    build:
+      context: auth-proxy/
+    ports:
+      - 80
   redqueen-web:
     networks:
       - redqueen
     build:
       context: web/
-    ports:
-      - 80
   redqueen-api:
     environment:
       REDQUEEN_DB_URL: mysql://redqueen:redqueen@mysql:3306/redqueen?charset=utf8

@@ -7,7 +7,7 @@ RUN mkdir /run/nginx
 RUN ln -sf /dev/stderr /var/log/nginx/error.log
 RUN ln -sf /dev/stdout /var/log/nginx/access.log
 
-COPY auth-proxy.conf /etc/nginx/conf.d/default.conf
+COPY auth-proxy.conf /etc/nginx/conf.d/auth-proxy.conf.template
 COPY nginx-wrapper.sh /nginx-wrapper.sh
 
 EXPOSE 80

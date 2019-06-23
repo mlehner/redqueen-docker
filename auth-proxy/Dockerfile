@@ -1,7 +1,7 @@
 ARG BASE_IMAGE=resin/raspberrypi3-alpine:3.5
 FROM $BASE_IMAGE
 
-RUN apk add --no-cache nginx
+RUN apk add --no-cache nginx gettext
 
 RUN mkdir /run/nginx
 RUN ln -sf /dev/stderr /var/log/nginx/error.log

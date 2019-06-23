@@ -1,32 +1,47 @@
 version: '3'
 services:
   redqueen-auth-proxy:
+    restart: unless-stopped
+    depends_on:
+      - redqueen-web
+    networks:
+      - proxy
     environment:
       HTPASSWD_CONTENTS: 'admin:$$apr1$$zzCtwG9/$$EHvacw3BSXrtqK7g3i3J1/'
+      SERVER_NAME: redqueen.local
     build:
       context: auth-proxy/
     ports:
-      - 80
+      - 80:80
   redqueen-web:
+    restart: unless-stopped
+    depends_on:
+      - redqueen-api
     networks:
-      - redqueen
+      - api
+      - proxy
     build:
       context: web/
   redqueen-api:
+    restart: unless-stopped
     environment:
       REDQUEEN_DB_URL: mysql://redqueen:redqueen@mysql:3306/redqueen?charset=utf8
     networks:
-      - redqueen
+      - api
       - mysql
     build:
       context: php-api/
   redqueen-serial:
+    restart: always
     networks:
       - mysql
     build:
       context: serial/
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0"
 
 networks:
-  redqueen:
+  api:
+  proxy:
   mysql:
     external: true

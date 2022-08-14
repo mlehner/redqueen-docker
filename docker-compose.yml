@@ -9,6 +9,8 @@ services:
       - proxy
     build:
       context: web/
+    ports:
+      - "80:80"
   redqueen-api:
     restart: unless-stopped
     environment:

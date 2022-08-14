@@ -1,18 +1,5 @@
 version: '3'
 services:
-  redqueen-auth-proxy:
-    restart: unless-stopped
-    depends_on:
-      - redqueen-web
-    networks:
-      - proxy
-    environment:
-      HTPASSWD_CONTENTS: 'admin:$$apr1$$zzCtwG9/$$EHvacw3BSXrtqK7g3i3J1/'
-      SERVER_NAME: redqueen.local
-    build:
-      context: auth-proxy/
-    ports:
-      - 80:80
   redqueen-web:
     restart: unless-stopped
     depends_on:

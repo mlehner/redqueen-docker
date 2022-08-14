@@ -12,7 +12,11 @@ services:
   redqueen-api:
     restart: unless-stopped
     environment:
-      REDQUEEN_DB_URL: mysql://redqueen:redqueen@mysql:3306/redqueen?charset=utf8
+      - REDQUEEN_DB_URL
+      - REDQUEEN_LOG_DB_URL
+      - REDQUEEN_JWT_KEYSET_URL
+      - REDQUEEN_JWT_AUDIENCE
+      - REDQUEEN_JWT_ISSUER
     networks:
       - api
       - mysql

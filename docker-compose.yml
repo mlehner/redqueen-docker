@@ -16,6 +16,7 @@ services:
     environment:
       - REDQUEEN_DB_URL
       - REDQUEEN_LOG_DB_URL
+      - REDQUEEN_JWT_DISABLED
       - REDQUEEN_JWT_KEYSET_URL
       - REDQUEEN_JWT_AUDIENCE
       - REDQUEEN_JWT_ISSUER

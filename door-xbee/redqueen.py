@@ -1,6 +1,5 @@
 #!/usr/bin/env python2
 
-import sqlite3
 import MySQLdb
 from xbee import ZigBee
 import serial

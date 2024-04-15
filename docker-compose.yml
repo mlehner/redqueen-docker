@@ -25,12 +25,12 @@ services:
       - mysql
     build:
       context: php-api/
-  redqueen-serial:
+  door-xbee:
     restart: always
     networks:
       - mysql
     build:
-      context: serial/
+      context: door-xbee/
     devices:
       - "/dev/ttyUSB0:/dev/ttyUSB0"
 

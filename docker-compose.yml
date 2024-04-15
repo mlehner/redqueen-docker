@@ -1,4 +1,3 @@
-version: '3'
 services:
   redqueen-web:
     restart: unless-stopped
@@ -33,9 +32,47 @@ services:
       context: door-xbee/
     devices:
       - "/dev/ttyUSB0:/dev/ttyUSB0"
+  door-mqtt:
+    restart: always
+    networks:
+      - mysql
+      - mqtt
+    build:
+      context: door-mqtt/
+    environment:
+      - REDQUEEN_DATABASE=redqueen
+      - REDQUEEN_DB_HOST=mysql
+      - REDQUEEN_DB_USER=redqueen
+      - REDQUEEN_DB_PASS=redqueen
+      - REDQUEEN_MQTT_HOST=mosquitto
+  mosquitto:
+    restart: always
+    image: eclipse-mosquitto
+    networks:
+      - mqtt
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+    ports:
+      - 1883:1883
+  mysql:
+    restart: always
+    image: mysql
+    networks:
+      - mysql
+    volumes:
+      - mysql_data:/var/lib/mysql
+    environment:
+      - MYSQL_RANDOM_ROOT_PASSWORD=yes
+      - MYSQL_DATABASE=redqueen
+      - MYSQL_USER=redqueen
+      - MYSQL_PASSWORD=redqueen
+
+volumes:
+  mysql_data:
 
 networks:
   api:
   proxy:
+  mqtt:
   mysql:
-    external: true

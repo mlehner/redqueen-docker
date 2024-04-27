@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=balenalib/raspberrypi3-alpine:3.5
+ARG BASE_IMAGE=arm64v8/alpine:3.5
 FROM $BASE_IMAGE
 
 RUN apk add --no-cache python2 py2-pip py-mysqldb

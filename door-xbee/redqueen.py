@@ -14,7 +14,7 @@ parser.add_argument('--serial-port', default='ttyUSB0')
 
 args = parser.parse_args()
 
-ser = serial.Serial( '/dev/%s' % args.serial_port, args.baud_rate)
+ser = serial.Serial('/dev/%s' % args.serial_port, args.baud_rate)
 xbee = ZigBee(ser)
 
 xbee.send('at', command='AT')
@@ -22,6 +22,11 @@ xbee.send('at', command='ID')
 xbee.send('at', command='CN')
 
 print("BOOTED")
+
+mysql_database = os.environ.get('REDQUEEN_DATABASE')
+mysql_host = os.environ.get('REDQUEEN_DB_HOST')
+mysql_user = os.environ.get('REDQUEEN_DB_USER')
+mysql_pass = os.environ.get('REDQUEEN_DB_PASS')
 
 # Continuously read and print packets
 while True:
@@ -31,15 +36,16 @@ while True:
 
         if 'rf_data' in response:
             conn = MySQLdb.connect(
-		host="mysql",
-		user="redqueen",
-		passwd="redqueen",
-		db="redqueen")
+                host=mysql_host,
+                user=mysql_user,
+                passwd=mysql_pass,
+                db=mysql_database
+            )
             cmd, data = response['rf_data'].split(':', 1)
             if cmd != 'A':
                 continue
 
-	    door_card, pin = data.split(':')
+            door_card, pin = data.split(':')
 
             print("Card ", door_card, " PIN ", pin)
 
@@ -48,7 +54,7 @@ while True:
             # Schedules are relative to where the door is, our only door is in EST
             dateToday = arrow.utcnow().to('America/New_York')
 
-            dayColumn = dowToColumn[ dateToday.weekday() ] 
+            dayColumn = dowToColumn[dateToday.weekday()]
 
             query = """
             SELECT DISTINCT 
@@ -66,9 +72,9 @@ while True:
                 AND %%s BETWEEN s.startTime AND s.endTime
             """ % (conn.escape_string(dayColumn),)
 
-            c = conn.cursor()
-            c.execute(query, (door_card, dateToday.format('HH:mm:ss'),))
-            card = c.fetchone()
+            with conn.cursor() as c:
+                c.execute(query, (door_card, dateToday.format('HH:mm:ss'),))
+                card = c.fetchone()
 
             valid_pin = False
 
@@ -78,15 +84,16 @@ while True:
                 print("Found card, valid pin... opening door!")
                 valid_pin = True
                 print({'data': pack('>bL', 0, 5)})
-                xbee.send('tx', dest_addr=response['source_addr'], dest_addr_long=response['source_addr_long'], data=pack('>bL', 0, 5))
+                xbee.send('tx', dest_addr=response['source_addr'], dest_addr_long=response['source_addr_long'],
+                          data=pack('>bL', 0, 5))
             else:
                 print("Found card, invalid pin")
 
-            c.execute('INSERT INTO logs (code, validPin, created_at) VALUES (%s, %s, NOW())', ( door_card, valid_pin ))
+            with conn.cursor() as c:
+                c.execute('INSERT INTO logs (code, validPin, created_at) VALUES (%s, %s, NOW())',
+                          (door_card, valid_pin))
+                conn.commit()
 
-            conn.commit()
-
-            c.close()
             conn.close()
     except KeyboardInterrupt:
         break

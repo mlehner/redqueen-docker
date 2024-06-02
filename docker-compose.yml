@@ -29,7 +29,13 @@ services:
     networks:
       - mysql
     build:
-      context: door-xbee/
+      context: door/
+      target: door-xbee
+    environment:
+      - REDQUEEN_DB_HOST=mysql
+      - REDQUEEN_DATABASE
+      - REDQUEEN_DB_USER
+      - REDQUEEN_DB_PASS
     devices:
       - "/dev/ttyUSB0:/dev/ttyUSB0"
   door-mqtt:
@@ -38,7 +44,8 @@ services:
       - mysql
       - mqtt
     build:
-      context: door-mqtt/
+      context: door/
+      target: door-mqtt
     environment:
       - REDQUEEN_DATABASE=redqueen
       - REDQUEEN_DB_HOST=mysql

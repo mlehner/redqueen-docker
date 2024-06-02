@@ -1,18 +1,16 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import MySQLdb
 from xbee import ZigBee
 import serial
 from struct import pack
 import argparse
-import sys
 import os
 import arrow
 
 parser = argparse.ArgumentParser(description='RedQueen door system daemon.')
 parser.add_argument('--baud-rate', type=int, default=115200)
 parser.add_argument('--serial-port', default='ttyUSB0')
-# parser.add_argument('--database', required=True)
 
 args = parser.parse_args()
 
@@ -23,15 +21,13 @@ xbee.send('at', command='AT')
 xbee.send('at', command='ID')
 xbee.send('at', command='CN')
 
-print "BOOTED"
-sys.stdout.flush()
+print("BOOTED")
 
 # Continuously read and print packets
 while True:
     try:
         response = xbee.wait_read_frame()
-        print response
-	sys.stdout.flush()
+        print(response)
 
         if 'rf_data' in response:
             conn = MySQLdb.connect(
@@ -45,8 +41,7 @@ while True:
 
 	    door_card, pin = data.split(':')
 
-            print "Card ", door_card, " PIN ", pin
-            sys.stdout.flush()
+            print("Card ", door_card, " PIN ", pin)
 
             dowToColumn = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 
@@ -78,17 +73,14 @@ while True:
             valid_pin = False
 
             if card is None:
-                print "No card found"
-                sys.stdout.flush()
+                print("No card found")
             elif card[1] == pin:
-                print "Found card, valid pin... opening door!"
+                print("Found card, valid pin... opening door!")
                 valid_pin = True
-                print { 'data': pack('>bL', 0, 5) }
-                sys.stdout.flush()
+                print({'data': pack('>bL', 0, 5)})
                 xbee.send('tx', dest_addr=response['source_addr'], dest_addr_long=response['source_addr_long'], data=pack('>bL', 0, 5))
             else:
-                print "Found card, invalid pin"
-                sys.stdout.flush()
+                print("Found card, invalid pin")
 
             c.execute('INSERT INTO logs (code, validPin, created_at) VALUES (%s, %s, NOW())', ( door_card, valid_pin ))
 

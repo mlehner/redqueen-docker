@@ -1,12 +1,12 @@
-ARG BASE_IMAGE=arm64v8/alpine:3.5
+ARG BASE_IMAGE=arm64v8/alpine:3.15
 FROM $BASE_IMAGE
 
-RUN apk add --no-cache python2 py2-pip py-mysqldb
+RUN apk add --no-cache python3 py3-pip py3-mysqlclient py3-arrow
 
 RUN pip install xbee
 
-RUN pip install arrow
-
 ADD redqueen.py /
+
+ENV PYTHONUNBUFFERED=1
 
 ENTRYPOINT [ "/redqueen.py" ]

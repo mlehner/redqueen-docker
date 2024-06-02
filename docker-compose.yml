@@ -64,11 +64,11 @@ services:
       context: door/
       target: door-mqtt
     environment:
-      - REDQUEEN_DATABASE=redqueen
       - REDQUEEN_DB_HOST=mysql
-      - REDQUEEN_DB_USER=redqueen
-      - REDQUEEN_DB_PASS=redqueen
       - REDQUEEN_MQTT_HOST=mosquitto
+      - REDQUEEN_DATABASE
+      - REDQUEEN_DB_USER
+      - REDQUEEN_DB_PASS
   mosquitto:
     restart: always
     image: eclipse-mosquitto
@@ -91,9 +91,9 @@ services:
       - mysql_data:/var/lib/mysql
     environment:
       - MYSQL_RANDOM_ROOT_PASSWORD=yes
-      - MYSQL_DATABASE=redqueen
-      - MYSQL_USER=redqueen
-      - MYSQL_PASSWORD=redqueen
+      - MYSQL_DATABASE="$REDQUEEN_DATABASE"
+      - MYSQL_USER="$REDQUEEN_DB_USER"
+      - MYSQL_PASSWORD="$REDQUEEN_DB_PASS"
 
 volumes:
   mysql_data:

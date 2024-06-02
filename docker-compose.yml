@@ -10,6 +10,11 @@ services:
       context: web/
     ports:
       - "80:80"
+    develop:
+      watch:
+        - action: sync
+          path: ../redqueen-js-app/web
+          target: /redqueen/web
   redqueen-api:
     restart: unless-stopped
     environment:
@@ -24,6 +29,11 @@ services:
       - mysql
     build:
       context: php-api/
+    develop:
+      watch:
+        - action: sync
+          path: ../redqueen-php-api
+          target: /redqueen
   door-xbee:
     restart: always
     networks:

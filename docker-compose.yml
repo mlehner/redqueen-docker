@@ -17,6 +17,8 @@ services:
           target: /redqueen/web
   redqueen-api:
     restart: unless-stopped
+    depends_on:
+      - mysql
     environment:
       - REDQUEEN_DB_URL
       - REDQUEEN_LOG_DB_URL
@@ -35,7 +37,10 @@ services:
           path: ../redqueen-php-api
           target: /redqueen
   door-xbee:
+    profiles: ["xbee"]
     restart: always
+    depends_on:
+      - mysql
     networks:
       - mysql
     build:
@@ -50,6 +55,8 @@ services:
       - "/dev/ttyUSB0:/dev/ttyUSB0"
   door-mqtt:
     restart: always
+    depends_on:
+      - mysql
     networks:
       - mysql
       - mqtt

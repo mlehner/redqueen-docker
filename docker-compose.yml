@@ -48,6 +48,7 @@ services:
       target: door-xbee
     environment:
       - REDQUEEN_DB_HOST=mysql
+      - REDQUEEN_XBEE_DOOR_IDENTIFIER
       - REDQUEEN_DATABASE
       - REDQUEEN_DB_USER
       - REDQUEEN_DB_PASS

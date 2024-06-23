@@ -25,7 +25,7 @@ def on_message(client, userdata, msg):
 
     payload = json.loads(msg.payload)
 
-    if payload.get("type") != "access":
+    if payload.get("type") != "cardswipe" and payload.get("type") != "pincodeentered" and payload.get("type") != "access":
         return
 
     if 'uid' not in payload:
@@ -42,7 +42,10 @@ def on_message(client, userdata, msg):
     door_card = str(payload["uid"]).upper()
     valid_pin = False
 
-    if payload.get("isKnown") != "false":
+    if payload.get("type") == "access":
+        if payload.get("isKnown") == "false":
+            return
+
         if door_card == ' ' and payload.get("username") == 'MQTT':
             return
 
@@ -65,44 +68,66 @@ def on_message(client, userdata, msg):
 
     dayColumn = dowToColumn[dateToday.weekday()]
 
+    door_identifier = payload.get("doorName")
+
+    if door_identifier is None:
+        print("Missing door identifier (doorName)")
+
     query = """
-   SELECT DISTINCT
-       c.id
-   FROM
-       cards c
-   LEFT JOIN
-       card_schedule cs ON (c.id = cs.card_id)
-   LEFT JOIN
-       schedules s ON (cs.schedule_id = s.id)
-   WHERE
-       c.code = %%s
-       AND c.isActive = 1
-       AND s.%s = 1
-       AND %%s BETWEEN s.startTime AND s.endTime
+    SELECT
+        c.id AS card_id,
+        c.pin,
+        COUNT(IF(s.authenticationMode = "card_pin", 1, NULL)) > 0 as require_pin
+    FROM cards c
+    LEFT JOIN card_schedule cs ON (c.id = cs.card_id)
+    LEFT JOIN schedules s ON (cs.schedule_id = s.id)
+    LEFT JOIN door_schedule ds ON (s.id = ds.schedule_id)
+    LEFT JOIN doors d ON (d.id = ds.door_id)
+    WHERE
+        c.code = %%s
+        AND c.isActive = 1
+        AND s.%s = 1
+        AND d.identifier = %%s
+        AND %%s BETWEEN s.startTime AND s.endTime
+    GROUP BY c.id, d.id
   """ % (dayColumn,)
 
     with conn.cursor() as c:
-        c.execute(query, (door_card, dateToday.format('HH:mm:ss'),))
+        c.execute(query, (door_card, door_identifier, dateToday.format('HH:mm:ss'),))
         card = c.fetchone()
+
+    valid_pin = False
 
     if card is None:
         print("No card found")
     else:
-        print("Found card, valid pin... opening door!")
-        valid_pin = True
+        print("Found card")
+
+        if card[2]:
+            if payload.get("type") != "pincodeentered":
+                # do nothing right now, wait for pincodeentered
+                print("Waiting for PIN code...")
+                return
+            else:
+                valid_pin = card[1] == payload.get("pincode")
+        else:
+            valid_pin = True
 
         door_ip = payload.get("doorip")
 
         if door_ip is None:
             print("Door IP not included in payload")
-        else:
+        elif valid_pin:
+            print("Valid pin, opening door")
             doorcmd = {'cmd': 'open', 'door': '0', 'doorip': door_ip}
 
             cmd_topic = msg.topic.replace("/send", "/cmd")
             client.publish(cmd_topic, payload=json.dumps(doorcmd))
+        else:
+            print("Invalid pin")
 
     with conn.cursor() as c:
-        c.execute('INSERT INTO logs (code, validPin, created_at) VALUES (%s, %s, NOW())', (door_card, valid_pin))
+        c.execute('INSERT INTO logs (code, validPin, created_at, door_identifier) VALUES (%s, %s, NOW(), %s)', (door_card, valid_pin, door_identifier))
         conn.commit()
 
     conn.close()

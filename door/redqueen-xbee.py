@@ -27,6 +27,7 @@ mysql_database = os.environ.get('REDQUEEN_DATABASE')
 mysql_host = os.environ.get('REDQUEEN_DB_HOST')
 mysql_user = os.environ.get('REDQUEEN_DB_USER')
 mysql_pass = os.environ.get('REDQUEEN_DB_PASS')
+door_identifier = os.environ.get('REDQUEEN_XBEE_DOOR_IDENTIFIER')
 
 # Continuously read and print packets
 while True:
@@ -57,30 +58,33 @@ while True:
             dayColumn = dowToColumn[dateToday.weekday()]
 
             query = """
-            SELECT DISTINCT 
-                c.id,c.pin 
-            FROM 
-                cards c 
-            LEFT JOIN 
-                card_schedule cs ON (c.id = cs.card_id) 
-            LEFT JOIN 
-                schedules s ON (cs.schedule_id = s.id) 
-            WHERE 
-                c.code = %%s 
-                AND c.isActive = 1 
-                AND s.%s = 1 
-                AND %%s BETWEEN s.startTime AND s.endTime
+    SELECT
+        c.id,
+        c.pin,
+        COUNT(IF(s.authenticationMode = "card_pin", 1, NULL)) > 0 as require_pin
+    FROM cards c
+    LEFT JOIN card_schedule cs ON (c.id = cs.card_id)
+    LEFT JOIN schedules s ON (cs.schedule_id = s.id)
+    LEFT JOIN door_schedule ds ON (s.id = ds.schedule_id)
+    LEFT JOIN doors d ON (d.id = ds.door_id)
+    WHERE
+        c.code = %%s
+        AND c.isActive = 1
+        AND s.%s = 1
+        AND d.identifier = %%s
+        AND %%s BETWEEN s.startTime AND s.endTime
+    GROUP BY c.id
             """ % (conn.escape_string(dayColumn),)
 
             with conn.cursor() as c:
-                c.execute(query, (door_card, dateToday.format('HH:mm:ss'),))
+                c.execute(query, (door_card, door_identifier, dateToday.format('HH:mm:ss'),))
                 card = c.fetchone()
 
             valid_pin = False
 
             if card is None:
                 print("No card found")
-            elif card[1] == pin:
+            elif card[2] is False or (card[2] is True and card[1] == pin):
                 print("Found card, valid pin... opening door!")
                 valid_pin = True
                 print({'data': pack('>bL', 0, 5)})
@@ -90,8 +94,8 @@ while True:
                 print("Found card, invalid pin")
 
             with conn.cursor() as c:
-                c.execute('INSERT INTO logs (code, validPin, created_at) VALUES (%s, %s, NOW())',
-                          (door_card, valid_pin))
+                c.execute('INSERT INTO logs (code, validPin, created_at, door_identifier) VALUES (%s, %s, NOW(), %s)',
+                          (door_card, valid_pin, door_identifier))
                 conn.commit()
 
             conn.close()

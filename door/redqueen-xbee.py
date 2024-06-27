@@ -84,7 +84,7 @@ while True:
 
             if card is None:
                 print("No card found")
-            elif card[2] is False or (card[2] is True and card[1] == pin):
+            elif card[2] == 0 or (card[2] == 1 and card[1] == pin):
                 print("Found card, valid pin... opening door!")
                 valid_pin = True
                 print({'data': pack('>bL', 0, 5)})

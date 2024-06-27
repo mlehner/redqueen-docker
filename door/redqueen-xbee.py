@@ -42,7 +42,7 @@ while True:
                 passwd=mysql_pass,
                 db=mysql_database
             )
-            cmd, data = response['rf_data'].split(':', 1)
+            cmd, data = response['rf_data'].split(b':', 1)
             if cmd != 'A':
                 continue
 

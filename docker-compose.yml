@@ -1,5 +1,6 @@
 services:
   redqueen-web:
+    image: mlehner/foundry:redqueen-web
     restart: unless-stopped
     depends_on:
       - redqueen-api
@@ -16,6 +17,7 @@ services:
           path: ../redqueen-js-app/web
           target: /redqueen/web
   redqueen-api:
+    image: mlehner/foundry:redqueen-api
     restart: unless-stopped
     depends_on:
       - mysql
@@ -37,6 +39,7 @@ services:
           path: ../redqueen-php-api
           target: /redqueen
   door-xbee:
+    image: mlehner/foundry:door-xbee
     profiles: ["xbee"]
     restart: always
     depends_on:
@@ -55,6 +58,7 @@ services:
     devices:
       - "/dev/ttyUSB0:/dev/ttyUSB0"
   door-mqtt:
+    image: mlehner/foundry:door-mqtt
     restart: always
     depends_on:
       - mysql

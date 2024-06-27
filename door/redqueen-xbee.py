@@ -74,7 +74,7 @@ while True:
         AND d.identifier = %%s
         AND %%s BETWEEN s.startTime AND s.endTime
     GROUP BY c.id
-            """ % (conn.escape_string(dayColumn),)
+            """ % (dayColumn,)
 
             with conn.cursor() as c:
                 c.execute(query, (door_card, door_identifier, dateToday.format('HH:mm:ss'),))

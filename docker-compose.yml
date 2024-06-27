@@ -20,8 +20,8 @@ services:
     depends_on:
       - mysql
     environment:
-      - REDQUEEN_DB_URL
-      - REDQUEEN_LOG_DB_URL
+      - REDQUEEN_DB_URL=mysql://${REDQUEEN_DB_USER}:${REDQUEEN_DB_PASS}@mysql/${REDQUEEN_DATABASE}?charset=utf8
+      - REDQUEEN_LOG_DB_URL=mysql://${REDQUEEN_DB_USER}:${REDQUEEN_DB_PASS}@mysql/${REDQUEEN_DATABASE}?charset=utf8
       - REDQUEEN_JWT_DISABLED
       - REDQUEEN_JWT_KEYSET_URL
       - REDQUEEN_JWT_AUDIENCE

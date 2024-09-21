@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker exec redqueen_mysql mysqldump redqueen > redqueen_`date +%s`.sql
+docker compose exec mysql sh -c 'exec mysqldump -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" --no-tablespaces "${MYSQL_DATABASE}"'

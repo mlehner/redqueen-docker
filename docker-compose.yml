@@ -97,6 +97,8 @@ services:
     restart: always
     logging: *default-logging
     image: mysql
+    command:
+      - --performance-schema=OFF
     networks:
       - mysql
     volumes:

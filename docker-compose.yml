@@ -109,7 +109,6 @@ services:
       - MYSQL_USER=$REDQUEEN_DB_USER
       - MYSQL_PASSWORD=$REDQUEEN_DB_PASS
   tunnel:
-    container_name: cloudflared-tunnel
     logging: *default-logging
     image: cloudflare/cloudflared
     restart: unless-stopped

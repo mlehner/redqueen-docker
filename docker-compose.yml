@@ -82,6 +82,11 @@ services:
       - REDQUEEN_DATABASE
       - REDQUEEN_DB_USER
       - REDQUEEN_DB_PASS
+    develop:
+      watch:
+        - action: sync+restart
+          path: door/redqueen-mqtt.py
+          target: /redqueen.py
   mosquitto:
     restart: always
     logging: *default-logging

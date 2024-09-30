@@ -76,6 +76,7 @@ def on_message(client, userdata, msg):
 
     if door_identifier is None:
         print("Missing door identifier (doorName)")
+        return
 
     query = """
     SELECT

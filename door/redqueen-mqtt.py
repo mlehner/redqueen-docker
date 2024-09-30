@@ -14,6 +14,10 @@ mysql_user = os.environ.get('REDQUEEN_DB_USER')
 mysql_pass = os.environ.get('REDQUEEN_DB_PASS')
 mqtt_host = os.environ.get('REDQUEEN_MQTT_HOST')
 
+def reply_to_mqtt_msg(mqtt_client, msg, reply_payload):
+    cmd_topic = msg.topic.replace("/send", "/cmd")
+    print(cmd_topic, reply_payload)
+    mqtt_client.publish(cmd_topic, payload=json.dumps(reply_payload))
 
 def on_connect(client, userdata, flags, reason_code):
     print("Connected with result code", reason_code)

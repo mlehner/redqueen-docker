@@ -78,6 +78,12 @@ def on_message(client, userdata, msg):
         print("Missing door identifier (doorName)")
         return
 
+    door_ip = payload.get("doorip")
+
+    if door_ip is None:
+        print("Door IP not included in payload")
+        return
+
     query = """
     SELECT
         c.id AS card_id,
@@ -118,11 +124,7 @@ def on_message(client, userdata, msg):
         else:
             valid_pin = True
 
-        door_ip = payload.get("doorip")
-
-        if door_ip is None:
-            print("Door IP not included in payload")
-        elif valid_pin:
+        if valid_pin:
             print("Valid pin, opening door")
             doorcmd = {'cmd': 'open', 'door': '0', 'doorip': door_ip}
 

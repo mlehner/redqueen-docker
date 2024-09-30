@@ -88,7 +88,8 @@ def on_message(client, userdata, msg):
     SELECT
         c.id AS card_id,
         c.pin,
-        COUNT(IF(s.authenticationMode = "card_pin", 1, NULL)) > 0 as require_pin
+        COUNT(IF(s.authenticationMode = "card_pin", 1, NULL)) > 0 as require_pin,
+        c.name
     FROM cards c
     LEFT JOIN card_schedule cs ON (c.id = cs.card_id)
     LEFT JOIN schedules s ON (cs.schedule_id = s.id)
@@ -109,6 +110,7 @@ def on_message(client, userdata, msg):
 
     if card is None:
         print("No card found")
+        reply_to_mqtt_msg(client, msg, {'cmd': 'accessdenied', 'doorip': door_ip, 'uid': door_card, 'user': 'Unknown'})
     else:
         print("Found card")
 
@@ -124,12 +126,10 @@ def on_message(client, userdata, msg):
 
         if valid_pin:
             print("Valid pin, opening door")
-            doorcmd = {'cmd': 'open', 'door': '0', 'doorip': door_ip}
-
-            cmd_topic = msg.topic.replace("/send", "/cmd")
-            client.publish(cmd_topic, payload=json.dumps(doorcmd))
+            reply_to_mqtt_msg(client, msg, {'cmd': 'accessgranted', 'door': '0', 'doorip': door_ip, 'uid': door_card, 'user': card[3]})
         else:
             print("Invalid pin")
+            reply_to_mqtt_msg(client, msg, {'cmd': 'accessdenied', 'doorip': door_ip, 'uid': door_card, 'user': card[3]})
 
     with conn.cursor() as c:
         c.execute('INSERT INTO logs (code, validPin, created_at, door_identifier) VALUES (%s, %s, NOW(), %s)', (door_card, valid_pin, door_identifier))

@@ -107,8 +107,6 @@ def on_message(client, userdata, msg):
         c.execute(query, (door_card, door_identifier, dateToday.format('HH:mm:ss'),))
         card = c.fetchone()
 
-    valid_pin = False
-
     if card is None:
         print("No card found")
     else:

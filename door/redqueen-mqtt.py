@@ -14,14 +14,24 @@ mysql_user = os.environ.get('REDQUEEN_DB_USER')
 mysql_pass = os.environ.get('REDQUEEN_DB_PASS')
 mqtt_host = os.environ.get('REDQUEEN_MQTT_HOST')
 
+
 def reply_to_mqtt_msg(mqtt_client, msg, reply_payload):
     cmd_topic = msg.topic.replace("/send", "/cmd")
     print(cmd_topic, reply_payload)
     mqtt_client.publish(cmd_topic, payload=json.dumps(reply_payload))
 
+
 def on_connect(client, userdata, flags, reason_code):
     print("Connected with result code", reason_code)
     client.subscribe("esp-rfid/+/send")
+
+
+def log_access(conn, door_card, valid_pin, door_identifier):
+    with conn.cursor() as c:
+        c.execute('INSERT INTO logs (code, validPin, created_at, door_identifier) VALUES (%s, %s, NOW(), %s)',
+                  (door_card, valid_pin, door_identifier))
+        conn.commit()
+        return c.lastrowid
 
 
 def on_message(client, userdata, msg):
@@ -46,6 +56,8 @@ def on_message(client, userdata, msg):
     door_card = str(payload["uid"]).upper()
     valid_pin = False
 
+    door_identifier = payload.get("doorName")
+
     if payload.get("type") == "access":
         if payload.get("isKnown") == "false":
             return
@@ -53,13 +65,12 @@ def on_message(client, userdata, msg):
         if door_card == ' ' and payload.get("username") == 'MQTT':
             return
 
-        valid_pin = True
+        if payload.get("log_id"):
+            return
 
         print("Card was known already")
 
-        with conn.cursor() as c:
-            c.execute('INSERT INTO logs (code, validPin, created_at) VALUES (%s, %s, NOW())', (door_card, valid_pin))
-            conn.commit()
+        log_access(conn, door_card, True, door_identifier)
 
         return
 
@@ -71,8 +82,6 @@ def on_message(client, userdata, msg):
     dateToday = arrow.utcnow().to('America/New_York')
 
     dayColumn = dowToColumn[dateToday.weekday()]
-
-    door_identifier = payload.get("doorName")
 
     if door_identifier is None:
         print("Missing door identifier (doorName)")
@@ -110,7 +119,9 @@ def on_message(client, userdata, msg):
 
     if card is None:
         print("No card found")
-        reply_to_mqtt_msg(client, msg, {'cmd': 'accessdenied', 'doorip': door_ip, 'uid': door_card, 'user': 'Unknown'})
+        log_id = log_access(conn, door_card, valid_pin, door_identifier)
+        reply_to_mqtt_msg(client, msg, {'cmd': 'accessdenied', 'doorip': door_ip, 'uid': door_card, 'user': 'Unknown',
+                                        'log_id': str(log_id)})
     else:
         print("Found card")
 
@@ -124,16 +135,16 @@ def on_message(client, userdata, msg):
         else:
             valid_pin = True
 
+        log_id = log_access(conn, door_card, valid_pin, door_identifier)
+
         if valid_pin:
             print("Valid pin, opening door")
-            reply_to_mqtt_msg(client, msg, {'cmd': 'accessgranted', 'door': '0', 'doorip': door_ip, 'uid': door_card, 'user': card[3]})
+            reply_to_mqtt_msg(client, msg, {'cmd': 'accessgranted', 'door': '0', 'doorip': door_ip, 'uid': door_card,
+                                            'user': card[3], 'log_id': str(log_id)})
         else:
             print("Invalid pin")
-            reply_to_mqtt_msg(client, msg, {'cmd': 'accessdenied', 'doorip': door_ip, 'uid': door_card, 'user': card[3]})
-
-    with conn.cursor() as c:
-        c.execute('INSERT INTO logs (code, validPin, created_at, door_identifier) VALUES (%s, %s, NOW(), %s)', (door_card, valid_pin, door_identifier))
-        conn.commit()
+            reply_to_mqtt_msg(client, msg, {'cmd': 'accessdenied', 'doorip': door_ip, 'uid': door_card, 'user': card[3],
+                                            'log_id': str(log_id)})
 
     conn.close()
 

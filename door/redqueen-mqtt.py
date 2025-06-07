@@ -2,9 +2,9 @@
 
 import MySQLdb
 import os
-import arrow
 import json
 import paho.mqtt.client as mqtt
+import database
 
 print("BOOTED")
 
@@ -24,14 +24,6 @@ def reply_to_mqtt_msg(mqtt_client, msg, reply_payload):
 def on_connect(client, userdata, flags, reason_code):
     print("Connected with result code", reason_code)
     client.subscribe("esp-rfid/+/send")
-
-
-def log_access(conn, door_card, valid_pin, door_identifier):
-    with conn.cursor() as c:
-        c.execute('INSERT INTO logs (code, validPin, created_at, door_identifier) VALUES (%s, %s, NOW(), %s)',
-                  (door_card, valid_pin, door_identifier))
-        conn.commit()
-        return c.lastrowid
 
 
 def on_message(client, userdata, msg):
@@ -70,18 +62,11 @@ def on_message(client, userdata, msg):
 
         print("Card was known already")
 
-        log_access(conn, door_card, True, door_identifier)
+        database.log_access(conn, None, door_card, True, door_identifier)
 
         return
 
     print("Card", door_card)
-
-    dowToColumn = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-
-    # Schedules are relative to where the door is, our only door is in EST
-    dateToday = arrow.utcnow().to('America/New_York')
-
-    dayColumn = dowToColumn[dateToday.weekday()]
 
     if door_identifier is None:
         print("Missing door identifier (doorName)")
@@ -93,33 +78,11 @@ def on_message(client, userdata, msg):
         print("Door IP not included in payload")
         return
 
-    query = """
-    SELECT
-        c.id AS card_id,
-        c.pin,
-        COUNT(IF(s.authenticationMode = "card_pin", 1, NULL)) > 0 as require_pin,
-        c.name
-    FROM cards c
-    LEFT JOIN card_schedule cs ON (c.id = cs.card_id)
-    LEFT JOIN schedules s ON (cs.schedule_id = s.id)
-    LEFT JOIN door_schedule ds ON (s.id = ds.schedule_id)
-    LEFT JOIN doors d ON (d.id = ds.door_id)
-    WHERE
-        c.code = %%s
-        AND c.isActive = 1
-        AND s.%s = 1
-        AND d.identifier = %%s
-        AND %%s BETWEEN s.startTime AND s.endTime
-    GROUP BY c.id, d.id
-  """ % (dayColumn,)
-
-    with conn.cursor() as c:
-        c.execute(query, (door_card, door_identifier, dateToday.format('HH:mm:ss'),))
-        card = c.fetchone()
+    card = database.query_access(conn, door_card, door_identifier)
 
     if card is None:
         print("No card found")
-        log_id = log_access(conn, door_card, valid_pin, door_identifier)
+        log_id = database.log_access(conn, None, door_card, valid_pin, door_identifier)
         reply_to_mqtt_msg(client, msg, {'cmd': 'accessdenied', 'doorip': door_ip, 'uid': door_card, 'user': 'Unknown',
                                         'log_id': str(log_id)})
     else:
@@ -135,7 +98,7 @@ def on_message(client, userdata, msg):
         else:
             valid_pin = True
 
-        log_id = log_access(conn, door_card, valid_pin, door_identifier)
+        log_id = database.log_access(conn, card[0], door_card, valid_pin, door_identifier)
 
         if valid_pin:
             print("Valid pin, opening door")

@@ -6,7 +6,7 @@ import serial
 from struct import pack
 import argparse
 import os
-import arrow
+import database
 
 parser = argparse.ArgumentParser(description='RedQueen door system daemon.')
 parser.add_argument('--baud-rate', type=int, default=115200)
@@ -50,35 +50,7 @@ while True:
 
             print("Card ", door_card, " PIN ", pin)
 
-            dowToColumn = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-
-            # Schedules are relative to where the door is, our only door is in EST
-            dateToday = arrow.utcnow().to('America/New_York')
-
-            dayColumn = dowToColumn[dateToday.weekday()]
-
-            query = """
-    SELECT
-        c.id,
-        c.pin,
-        COUNT(IF(s.authenticationMode = "card_pin", 1, NULL)) > 0 as require_pin
-    FROM cards c
-    LEFT JOIN card_schedule cs ON (c.id = cs.card_id)
-    LEFT JOIN schedules s ON (cs.schedule_id = s.id)
-    LEFT JOIN door_schedule ds ON (s.id = ds.schedule_id)
-    LEFT JOIN doors d ON (d.id = ds.door_id)
-    WHERE
-        c.code = %%s
-        AND c.isActive = 1
-        AND s.%s = 1
-        AND d.identifier = %%s
-        AND %%s BETWEEN s.startTime AND s.endTime
-    GROUP BY c.id
-            """ % (dayColumn,)
-
-            with conn.cursor() as c:
-                c.execute(query, (door_card, door_identifier, dateToday.format('HH:mm:ss'),))
-                card = c.fetchone()
+            card = database.query_access(conn, door_card, door_identifier)
 
             valid_pin = False
 
@@ -93,10 +65,7 @@ while True:
             else:
                 print("Found card, invalid pin")
 
-            with conn.cursor() as c:
-                c.execute('INSERT INTO logs (code, validPin, created_at, door_identifier) VALUES (%s, %s, NOW(), %s)',
-                          (door_card, valid_pin, door_identifier))
-                conn.commit()
+            database.log_access(conn, card[0], door_card, door_identifier, valid_pin)
 
             conn.close()
     except KeyboardInterrupt:

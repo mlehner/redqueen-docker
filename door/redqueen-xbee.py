@@ -65,7 +65,7 @@ while True:
             else:
                 print("Found card, invalid pin")
 
-            database.log_access(conn, card[0] is card is not None else None, door_card, valid_pin, door_identifier)
+            database.log_access(conn, card[0] if card is not None else None, door_card, valid_pin, door_identifier)
 
             conn.close()
     except KeyboardInterrupt:

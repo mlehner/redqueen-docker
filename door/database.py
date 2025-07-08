@@ -36,8 +36,8 @@ def query_access(conn, door_card, door_identifier):
           AND d.identifier = %%s
           AND %%s BETWEEN s.startTime AND s.endTime
       GROUP BY c.id, d.id
-    """ % (dayColumn,)
+    """ % (dayColumn,dayColumn,)
 
     with conn.cursor() as c:
-        c.execute(query, (door_card, door_identifier, dateToday.format('HH:mm:ss'),))
+        c.execute(query, (door_identifier, door_card, door_identifier, dateToday.format('HH:mm:ss'),))
         return c.fetchone()

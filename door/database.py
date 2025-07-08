@@ -20,9 +20,9 @@ def query_access(conn, door_card, door_identifier):
           c.id AS card_id,
           c.pin,
           COUNT(IF(s.authenticationMode = "card_pin", 1, NULL)) > 0 as require_pin,
+          c.name,
           COUNT(IF(s.%s = 1, 1, NULL)) > 0 as matched_days,
-          COUNT(IF(d.identifer = %%s, 1, NULL)) > 0 as matched_doors,
-          c.name
+          COUNT(IF(d.identifier = %%s, 1, NULL)) > 0 as matched_doors
       FROM cards c
       LEFT JOIN card_schedule cs ON (c.id = cs.card_id)
       LEFT JOIN schedules s ON (cs.schedule_id = s.id)

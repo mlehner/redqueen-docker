@@ -29,7 +29,7 @@ def query_access(conn, door_card, door_identifier):
       LEFT JOIN door_schedule ds ON (s.id = ds.schedule_id)
       LEFT JOIN doors d ON (d.id = ds.door_id)
       WHERE
-          c.disabled_at IS NULL
+          c.deleted_at IS NULL
           c.code = %%s
           AND c.isActive = 1
           AND s.%s = 1

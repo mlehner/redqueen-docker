@@ -1,0 +1,4 @@
+services:
+  redqueen-api:
+    volumes:
+      - ../redqueen-php-api:/redqueen

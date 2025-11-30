@@ -39,11 +39,6 @@ services:
       - mysql
     build:
       context: php-api/
-    develop:
-      watch:
-        - action: sync
-          path: ../redqueen-php-api
-          target: /redqueen
   door-xbee:
     image: mlehner/foundry:door-xbee
     logging: *default-logging
